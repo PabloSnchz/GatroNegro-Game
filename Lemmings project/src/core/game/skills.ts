@@ -1,4 +1,5 @@
 import type { Lemming } from './Lemming';
+import { soundManager } from './SoundManager';
 
 export type SkillType = 'CLIMBER' | 'FLOATER' | 'BOMBER' | 'BLOCKER' | 'BUILDER' | 'BASHER' | 'MINER' | 'DIGGER';
 
@@ -14,7 +15,7 @@ export function executeSkill(engine: any, lemmingId: number, skill: SkillType): 
   if (skill === 'CLIMBER') l.isClimber = true;
   else if (skill === 'FLOATER') l.isFloater = true;
   else if (skill === 'BOMBER') { l.state = 'BOMBING'; l.timer = 85; }
-  else if (skill === 'BLOCKER') { l.state = 'BLOCKING'; }
+  else if (skill === 'BLOCKER') { l.state = 'BLOCKING'; soundManager.block(); }
   else if (skill === 'BUILDER') { l.state = 'BUILDING'; l.timer = 0; l.stepsLeft = 12; }
   else if (skill === 'BASHER') { l.state = 'BASHING'; l.timer = 0; }
   else if (skill === 'MINER') { l.state = 'MINING'; l.timer = 0; }

@@ -159,7 +159,7 @@ export class GameEngine {
     }
 
     for (const l of this.lemmings) {
-      if (l.state === 'DEAD') this.dead++;
+      if (l.state === 'DEAD') { this.dead++; soundManager.death(); }
       else if (l.state === 'EXITED') this.saved++;
     }
     this.lemmings = this.lemmings.filter(l => l.state !== 'DEAD' && l.state !== 'EXITED');

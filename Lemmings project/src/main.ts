@@ -265,6 +265,7 @@ function startLevel(level: LevelModel) {
 
 function endGame(won: boolean, message: string) {
   gameState = won ? 'WON' : 'LOST';
+  if (won) soundManager.win(); else soundManager.lose();
   hud.style.display = 'none';
   speedBtn.style.display = 'none';
   skillBar.style.display = 'none';

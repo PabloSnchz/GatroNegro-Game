@@ -52,6 +52,14 @@ export class SoundManager {
     setTimeout(() => this.playTone(880, 'sine', 0.2, 0.1), 100);
   }
   click() { this.playTone(1000, 'sine', 0.05, 0.05); }
+  death() { this.playTone(200, 'sawtooth', 0.3, 0.1, 50); }
+  block() { this.playTone(350, 'square', 0.08, 0.06); }
+  win() {
+    this.playTone(523, 'sine', 0.15, 0.1);
+    setTimeout(() => this.playTone(659, 'sine', 0.15, 0.1), 150);
+    setTimeout(() => this.playTone(784, 'sine', 0.2, 0.1), 300);
+  }
+  lose() { this.playTone(300, 'sawtooth', 0.4, 0.1, 100); }
 }
 
 export const soundManager = new SoundManager();

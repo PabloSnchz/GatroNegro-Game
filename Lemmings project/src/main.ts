@@ -38,7 +38,7 @@ uiLayer.appendChild(topBar);
 
 const hud = document.createElement('div');
 // Añadido pointer-events: auto
-hud.style.cssText = 'background:rgba(15,23,42,0.85); border:2px solid #334155; color:#38bdf8; font-family:"Courier New",monospace; font-weight:bold; padding:12px 20px; border-radius:12px; font-size:20px; display:none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(4px); pointer-events: auto;';
+hud.style.cssText = 'background:rgba(15,23,42,0.85); border:2px solid #334155; color:#38bdf8; font-family:"Courier New",monospace; font-weight:bold; padding:12px 20px; border-radius:12px; font-size:20px; display:none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(4px); pointer-events: auto; min-width: 420px; text-align: center;';
 topBar.appendChild(hud);
 
 const speedBtn = document.createElement('button');
@@ -56,6 +56,36 @@ uiLayer.appendChild(skillBar);
 const overlay = document.createElement('div');
 overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(10,25,47,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:auto; color:#fff;';
 uiLayer.appendChild(overlay);
+
+// Sistema de puntuación persistente
+function getLevelStars(levelId: string): number {
+  try {
+    const stored = localStorage.getItem('lemmings_stars_' + levelId);
+    return stored ? parseInt(stored, 10) : 0;
+  } catch { return 0; }
+}
+
+function saveLevelStars(levelId: string, stars: number): void {
+  try {
+    const current = getLevelStars(levelId);
+    if (stars > current) {
+      localStorage.setItem('lemmings_stars_' + levelId, String(stars));
+    }
+  } catch { /* ignore */ }
+}
+
+function getTotalStars(): number {
+  let total = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('lemmings_stars_')) {
+        total += parseInt(localStorage.getItem(key) || '0', 10);
+      }
+    }
+  } catch { /* ignore */ }
+  return total;
+}
 
 async function boot(): Promise<void> {
   catalog = new LevelCatalog();
@@ -78,7 +108,7 @@ async function boot(): Promise<void> {
     
     const scaledDelta = ticker.deltaMS * gameSpeed;
     
-    lemmingRenderer.updateTick(gameSpeed);
+    lemmingRenderer.updateTick();
     particleSystem.update(scaledDelta);
     timeRemaining -= scaledDelta;
     
@@ -157,13 +187,27 @@ function showMenu() {
 
   const title = document.createElement('h1');
   title.textContent = 'Lemmings';
-  title.style.cssText = 'font-family: Impact, Arial Black, sans-serif; font-size:7rem; margin-bottom:0; color:#22c55e; text-transform:uppercase; letter-spacing:2px; text-shadow: 0 5px 0 #166534, 0 10px 20px rgba(0,0,0,0.8); -webkit-text-stroke: 2px #000;';
+  title.style.cssText = 'font-family: Impact, Arial Black, sans-serif; font-size:7rem; margin-bottom:0; color:#22c55e; text-transform:uppercase; letter-spacing:2px; text-shadow: 0 5px 0 #166534, 0 10px 20px rgba(0,0,0,0.8); -webkit-text-stroke: 2px #000; animation: titlePulse 2s ease-in-out infinite;';
   overlay.appendChild(title);
   
   const subtitle = document.createElement('h2');
-  subtitle.textContent = 'LWPE Edition';
-  subtitle.style.cssText = 'margin-top:-10px; margin-bottom:50px; color:#94a3b8; font-size:1.5rem; letter-spacing: 5px; text-transform: uppercase;';
+  subtitle.textContent = `LWPE Edition - Remasterizado | ⭐ ${getTotalStars()} estrellas`;
+  subtitle.style.cssText = 'margin-top:-10px; margin-bottom:50px; color:#94a3b8; font-size:1.5rem; letter-spacing: 5px; text-transform: uppercase; animation: fadeIn 1s ease-in 0.5s both;';
   overlay.appendChild(subtitle);
+
+  // Inject CSS animations
+  if (!document.getElementById('lemmings-animations')) {
+    const style = document.createElement('style');
+    style.id = 'lemmings-animations';
+    style.textContent = `
+      @keyframes titlePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes bounceIn { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+      @keyframes confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+    `;
+    document.head.appendChild(style);
+  }
 
   const grid = document.createElement('div');
   grid.style.cssText = 'display:flex; gap:20px; flex-wrap:wrap; justify-content:center; max-width:800px;';
@@ -172,10 +216,10 @@ function showMenu() {
     for (const [rating, levels] of pack.levelsByRating) {
       for (const lvl of levels) {
         const btn = document.createElement('button');
-        btn.style.cssText = 'padding:20px 30px; background:#1e293b; color:#fff; border:none; border-radius:16px; cursor:pointer; font-size:20px; min-width:200px; transition: all 0.1s; box-shadow: 0 8px 0 #0f172a, 0 10px 20px rgba(0,0,0,0.5);';
-        btn.onmouseover = () => { btn.style.background = '#334155'; btn.style.transform = 'translateY(4px)'; btn.style.boxShadow = '0 4px 0 #0f172a, 0 5px 10px rgba(0,0,0,0.5)'; };
-        btn.onmouseout = () => { btn.style.background = '#1e293b'; btn.style.transform = 'translateY(0)'; btn.style.boxShadow = '0 8px 0 #0f172a, 0 10px 20px rgba(0,0,0,0.5)'; };
-        btn.innerHTML = `<strong style="color:#22c55e; font-size:1.4rem; text-shadow: 1px 1px 2px #000;">${lvl.title}</strong><br/><span style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">${rating} - Nvl ${lvl.levelNumber}</span>`;
+        btn.style.cssText = 'padding:20px 30px; background:#1e293b; color:#fff; border:none; border-radius:16px; cursor:pointer; font-size:20px; min-width:200px; transition: all 0.1s; box-shadow: 0 8px 0 #0f172a, 0 10px 20px rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out both;';
+        btn.onmouseover = () => { btn.style.background = '#334155'; btn.style.transform = 'translateY(4px) scale(1.05)'; btn.style.boxShadow = '0 4px 0 #0f172a, 0 5px 10px rgba(0,0,0,0.5)'; };
+        btn.onmouseout = () => { btn.style.background = '#1e293b'; btn.style.transform = 'translateY(0) scale(1)'; btn.style.boxShadow = '0 8px 0 #0f172a, 0 10px 20px rgba(0,0,0,0.5)'; };
+        btn.innerHTML = `<strong style="color:#22c55e; font-size:1.4rem; text-shadow: 1px 1px 2px #000;">${lvl.title}</strong><br/><span style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">${rating} - Nvl ${lvl.levelNumber}</span><br/><span style="font-size:14px; margin-top:4px;">${'⭐'.repeat(getLevelStars(lvl.id))}${'☆'.repeat(3 - getLevelStars(lvl.id))}</span>`;
         btn.onclick = () => {
           soundManager.init();
           soundManager.click();
@@ -230,8 +274,33 @@ function endGame(won: boolean, message: string) {
 
   const msg = document.createElement('h1');
   msg.textContent = message;
-  msg.style.cssText = `font-family: Impact, sans-serif; font-size:5rem; text-transform: uppercase; text-shadow: 0 5px 0 #000, 0 10px 20px rgba(0,0,0,0.8); color: ${won ? '#22c55e' : '#ef4444'}; -webkit-text-stroke: 2px #000;`;
+  msg.style.cssText = `font-family: Impact, sans-serif; font-size:5rem; text-transform: uppercase; text-shadow: 0 5px 0 #000, 0 10px 20px rgba(0,0,0,0.8); color: ${won ? '#22c55e' : '#ef4444'}; -webkit-text-stroke: 2px #000; animation: bounceIn 0.5s ease-out;`;
   overlay.appendChild(msg);
+
+  // Estrellas de puntuación
+  if (won) {
+    const starsDiv = document.createElement('div');
+    starsDiv.style.cssText = 'display:flex; gap:10px; margin:20px 0; font-size:3rem; animation: fadeIn 0.5s ease-in 0.3s both;';
+    const savedPct = currentLevel ? (engine ? engine.snapshot().saved / currentLevel.toSave : 0) : 0;
+    const stars = savedPct >= 1 ? 3 : savedPct >= 0.8 ? 2 : 1;
+    if (currentLevel) saveLevelStars(currentLevel.id, stars);
+    for (let i = 0; i < 3; i++) {
+      const star = document.createElement('span');
+      star.textContent = i < stars ? '⭐' : '☆';
+      star.style.cssText = `animation: bounceIn 0.3s ease-out ${0.5 + i * 0.2}s both; filter: ${i < stars ? 'none' : 'grayscale(1) opacity(0.3)'};`;
+      starsDiv.appendChild(star);
+    }
+    overlay.appendChild(starsDiv);
+
+    // Confetti
+    for (let i = 0; i < 30; i++) {
+      const confettiEmojis = ['🎉', '✨', '🌟', '⭐', '🎊'];
+      const conf = document.createElement('div');
+      conf.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)] ?? '🎉';
+      conf.style.cssText = `position:absolute; left:${Math.random() * 100}%; top:-50px; font-size:${1 + Math.random() * 2}rem; animation: confetti ${2 + Math.random() * 2}s linear ${Math.random() * 0.5}s forwards; pointer-events:none;`;
+      overlay.appendChild(conf);
+    }
+  }
 
   const menuBtn = document.createElement('button');
   menuBtn.textContent = 'Volver al Menú';
@@ -271,10 +340,14 @@ function updateHUD() {
   const secs = Math.floor((timeRemaining % 60000) / 1000);
   
   hud.innerHTML = `
-    <span style="color:#fff">TIME</span> ${mins}:${secs.toString().padStart(2, '0')} &nbsp;&nbsp;|&nbsp;&nbsp; 
-    <span style="color:#fff">SAVED</span> <span style="color:${snap.saved >= snap.toSave ? '#22c55e' : '#facc15'}">${snap.saved}/${snap.toSave}</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
-    <span style="color:#fff">ALIVE</span> ${snap.lemmings.length} &nbsp;&nbsp;|&nbsp;&nbsp; 
-    <span style="color:#fff">DEAD</span> <span style="color:#ef4444">${snap.dead}</span>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:20px;">
+      <span>⏱️ ${mins}:${secs.toString().padStart(2, '0')}</span>
+      <span> Lemmings: <span style="color:${snap.saved >= snap.toSave ? '#22c55e' : '#facc15'}">${snap.saved}/${snap.toSave}</span></span>
+      <span>💀 ${snap.dead}</span>
+    </div>
+    <div style="margin-top:8px; height:6px; background:#1e293b; border-radius:3px; overflow:hidden;">
+      <div style="height:100%; width:${Math.min(100, (snap.saved / snap.toSave) * 100)}%; background:linear-gradient(90deg, #22c55e, #4ade80); transition:width 0.3s; border-radius:3px;"></div>
+    </div>
   `;
 
   for (const btn of Array.from(skillBar.children) as HTMLButtonElement[]) {
@@ -324,7 +397,7 @@ dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dra
 dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
 dz.addEventListener('drop', async e => {
   e.preventDefault(); dz.classList.remove('dragover');
-  const files = [...(e.dataTransfer?.files ?? [])];
+  const files = Array.from(e.dataTransfer?.files ?? []);
   let loaded = 0;
 
   for (const file of files) {
